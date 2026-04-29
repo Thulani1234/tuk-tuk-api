@@ -6,6 +6,8 @@ import swaggerUi    from 'swagger-ui-express';
 import swaggerJsdoc from 'swagger-jsdoc';
 import dotenv       from 'dotenv';
 dotenv.config();
+import { connectDB } from './config/db.js';
+
 
 import authRoutes     from './routes/auth.routes.js';
 import vehicleRoutes  from './routes/vehicle.routes.js';
@@ -73,8 +75,13 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: 'Unexpected server error' });
 });
 
+
+
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`\nTuk-Tuk API  →  http://localhost:${PORT}`);
-  console.log(`Swagger docs →  http://localhost:${PORT}/api-docs\n`);
+// Connect to MSSQL first, then start the server
+connectDB().then(() => {
+  app.listen(PORT, () => {
+    console.log(`\nTuk-Tuk API  →  http://localhost:${PORT}`);
+    console.log(`Swagger docs →  http://localhost:${PORT}/api-docs\n`);
+  });
 });
