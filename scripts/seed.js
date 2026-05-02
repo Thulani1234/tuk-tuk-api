@@ -1,14 +1,16 @@
 import sql    from 'mssql';
 import bcrypt from 'bcryptjs';
-import dotenv from 'dotenv';
+import * as dotenv from 'dotenv';
 dotenv.config();
 
 const config = {
-  server:   process.env.DB_SERVER,
-  port:     parseInt(process.env.DB_PORT) || 1433,
-  user:     process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-  database: process.env.DB_NAME,
+  server:         'localhost',
+  port:           1433,
+  user:           process.env.DB_USER,
+  password:       process.env.DB_PASSWORD,
+  database:       process.env.DB_NAME,
+  requestTimeout: 120000,
+  connectionTimeout: 30000,
   options: {
     encrypt:                false,
     trustServerCertificate: true,
@@ -92,20 +94,25 @@ async function seed() {
   console.log('Connected to SQL Server\n');
 
   console.log('Clearing old data...');
-  await pool.request().query(`
-    IF OBJECT_ID('location_pings',  'U') IS NOT NULL DELETE FROM location_pings;
-    IF OBJECT_ID('vehicles',        'U') IS NOT NULL DELETE FROM vehicles;
-    IF OBJECT_ID('users',           'U') IS NOT NULL DELETE FROM users;
-    IF OBJECT_ID('police_stations', 'U') IS NOT NULL DELETE FROM police_stations;
-    IF OBJECT_ID('districts',       'U') IS NOT NULL DELETE FROM districts;
-    IF OBJECT_ID('provinces',       'U') IS NOT NULL DELETE FROM provinces;
-    DBCC CHECKIDENT('provinces',       RESEED, 0);
-    DBCC CHECKIDENT('districts',       RESEED, 0);
-    DBCC CHECKIDENT('police_stations', RESEED, 0);
-    DBCC CHECKIDENT('users',           RESEED, 0);
-    DBCC CHECKIDENT('vehicles',        RESEED, 0);
-    DBCC CHECKIDENT('location_pings',  RESEED, 0);
-  `);
+  await pool.request().query(`DELETE FROM location_pings`);
+  console.log('  location_pings cleared');
+  await pool.request().query(`DELETE FROM vehicles`);
+  console.log('  vehicles cleared');
+  await pool.request().query(`DELETE FROM users`);
+  console.log('  users cleared');
+  await pool.request().query(`DELETE FROM police_stations`);
+  console.log('  police_stations cleared');
+  await pool.request().query(`DELETE FROM districts`);
+  console.log('  districts cleared');
+  await pool.request().query(`DELETE FROM provinces`);
+  console.log('  provinces cleared');
+
+  await pool.request().query(`DBCC CHECKIDENT('provinces',       RESEED, 0)`);
+  await pool.request().query(`DBCC CHECKIDENT('districts',       RESEED, 0)`);
+  await pool.request().query(`DBCC CHECKIDENT('police_stations', RESEED, 0)`);
+  await pool.request().query(`DBCC CHECKIDENT('users',           RESEED, 0)`);
+  await pool.request().query(`DBCC CHECKIDENT('vehicles',        RESEED, 0)`);
+  await pool.request().query(`DBCC CHECKIDENT('location_pings',  RESEED, 0)`);
 
   console.log('Seeding provinces...');
   for (const p of provinces) {
@@ -195,17 +202,20 @@ async function seed() {
   console.log('Seeding 7 days of location history...');
   const now          = new Date();
   const sevenDaysAgo = new Date(now - 7 * 24 * 60 * 60 * 1000);
+  let totalRows      = 0;
+  let batchValues    = [];
 
-  const table    = new sql.Table('location_pings');
-  table.create   = false;
-  table.columns.add('vehicle_id', sql.Int,           { nullable: false });
-  table.columns.add('latitude',   sql.Decimal(10,8), { nullable: false });
-  table.columns.add('longitude',  sql.Decimal(11,8), { nullable: false });
-  table.columns.add('speed',      sql.Decimal(5,2),  { nullable: true  });
-  table.columns.add('heading',    sql.Decimal(5,2),  { nullable: true  });
-  table.columns.add('pinged_at',  sql.DateTime2,     { nullable: false });
-
-  let totalRows = 0;
+  const flushBatch = async () => {
+    if (batchValues.length === 0) return;
+    const valueStr = batchValues.join(',\n');
+    await pool.request().query(`
+      INSERT INTO location_pings
+        (vehicle_id, latitude, longitude, speed, heading, pinged_at)
+      VALUES ${valueStr}
+    `);
+    batchValues = [];
+    process.stdout.write('.');
+  };
 
   for (const vid of vehicleIds) {
     let lat = 7.8731 + rand(-1.5, 1.5);
@@ -216,28 +226,25 @@ async function seed() {
       lat += rand(-0.005, 0.005);
       lng += rand(-0.005, 0.005);
 
-      table.rows.add(
-        vid,
-        parseFloat(lat.toFixed(8)),
-        parseFloat(lng.toFixed(8)),
-        parseFloat(rand(0, 80).toFixed(2)),
-        parseFloat(rand(0, 360).toFixed(2)),
-        new Date(t)
+      const speed   = parseFloat(rand(0, 80).toFixed(2));
+      const heading = parseFloat(rand(0, 360).toFixed(2));
+      const latF    = parseFloat(lat.toFixed(8));
+      const lngF    = parseFloat(lng.toFixed(8));
+      const dateStr = t.toISOString().replace('T', ' ').replace('Z', '');
+
+      batchValues.push(
+        `(${vid}, ${latF}, ${lngF}, ${speed}, ${heading}, '${dateStr}')`
       );
       totalRows++;
       t = new Date(t.getTime() + 30 * 60 * 1000);
 
-      if (table.rows.length >= 5000) {
-        await pool.request().bulk(table);
-        table.rows = [];
-        process.stdout.write('.');
+      if (batchValues.length >= 500) {
+        await flushBatch();
       }
     }
   }
 
-  if (table.rows.length > 0) {
-    await pool.request().bulk(table);
-  }
+  await flushBatch();
 
   console.log(`\n\nSeed complete!`);
   console.log(`Total pings inserted: ~${totalRows}`);
