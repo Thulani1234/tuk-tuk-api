@@ -1,7 +1,9 @@
 
 # Tuk-Tuk Tracking API
 
-**Student ID:** YOUR_STUDENT_ID_HERE
+**Student ID: COBSCCOMP242P-028**
+**Student Name: T.T.Liyanaarachchi**
+
 
 Real-Time Three-Wheeler Tracking System for Sri Lanka Police.
 

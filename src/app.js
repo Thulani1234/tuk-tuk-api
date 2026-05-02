@@ -5,15 +5,19 @@ import rateLimit    from 'express-rate-limit';
 import swaggerUi    from 'swagger-ui-express';
 import swaggerJsdoc from 'swagger-jsdoc';
 import dotenv       from 'dotenv';
+import { fileURLToPath } from 'url';
+import { dirname, join }  from 'path';
 dotenv.config();
-import { connectDB } from './config/db.js';
 
-
+import { getPool }    from './config/db.js';
 import authRoutes     from './routes/auth.routes.js';
 import vehicleRoutes  from './routes/vehicle.routes.js';
 import locationRoutes from './routes/location.routes.js';
 import boundaryRoutes from './routes/boundary.routes.js';
 import userRoutes     from './routes/user.routes.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname  = dirname(__filename);
 
 const app = express();
 
@@ -49,7 +53,7 @@ const swaggerSpec = swaggerJsdoc({
     },
     security: [{ bearerAuth: [] }],
   },
-  apis: ['./src/routes/*.js'],
+  apis: [join(__dirname, './routes/*.js')],
 });
 
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
@@ -75,13 +79,15 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: 'Unexpected server error' });
 });
 
-
-
 const PORT = process.env.PORT || 3000;
-// Connect to MSSQL first, then start the server
-connectDB().then(() => {
-  app.listen(PORT, () => {
+
+app.listen(PORT, async () => {
+  try {
+    await getPool();
     console.log(`\nTuk-Tuk API  →  http://localhost:${PORT}`);
     console.log(`Swagger docs →  http://localhost:${PORT}/api-docs\n`);
-  });
+  } catch (err) {
+    console.error('Failed to connect to database:', err.message);
+    process.exit(1);
+  }
 });
