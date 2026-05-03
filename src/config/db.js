@@ -3,8 +3,8 @@ import * as dotenv from 'dotenv';
 dotenv.config();
 
 const config = {
-  server:   'localhost',
-  port:     1433,
+  server:   process.env.DB_SERVER || 'localhost',
+  port:     parseInt(process.env.DB_PORT || '1433', 10),
   user:     process.env.DB_USER,
   password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME,
