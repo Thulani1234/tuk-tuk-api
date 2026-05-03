@@ -61,6 +61,8 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
   customSiteTitle: 'Tuk-Tuk Tracking API Docs',
 }));
 
+app.get('/docs', (req, res) => res.redirect('/api-docs'));
+
 app.get('/health', (req, res) =>
   res.json({ status: 'ok', timestamp: new Date().toISOString() })
 );
