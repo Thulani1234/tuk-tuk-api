@@ -8,11 +8,12 @@ const __dirname = dirname(__filename);
 
 dotenv.config({ path: join(__dirname, '../../.env'), override: true });
 const config = {
-  server:   process.env.DB_SERVER || 'localhost',
-  port:     parseInt(process.env.DB_PORT || '1433', 10),
-  user:     process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-  database: process.env.DB_NAME,
+  server:   'host.docker.internal',
+  port:     1433,
+  user:     process.env.DB_USER || 'sa',
+  password: process.env.DB_PASSWORD || 'Admin@1234',
+  database: process.env.DB_NAME || 'tuktuk_db',
+
   options: {
     encrypt:                false,
     trustServerCertificate: true,
