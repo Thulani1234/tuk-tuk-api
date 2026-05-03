@@ -23,7 +23,15 @@ npm run dev
 ```
 
 ## Swagger Docs
-http://localhost:3000/api-docs
+https://tuk-tuk-api-production-46b5.up.railway.app
+https://tuk-tuk-api-production-46b5.up.railway.app/api-docs
+
+
+http://localhost:3000/api-docs (localhost)
+
+
+## API Specification JSON File Created Direct JSON File Link:
+http://localhost:3001/csv/tuktuk-api-specification.json
 
 ## Roles
 | Role | Access |

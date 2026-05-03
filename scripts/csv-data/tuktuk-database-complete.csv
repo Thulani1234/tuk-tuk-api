@@ -1,0 +1,177 @@
+# Tuk-Tuk API Complete Database Export
+# Generated: 2026-05-03
+# This file contains all database tables with sample data
+
+=== PROVINCES ===
+table:provinces
+id,name,code
+1,Western,WP
+2,Central,CP
+3,Southern,SP
+4,Northern,NP
+5,Eastern,EP
+6,North Western,NWP
+7,North Central,NCP
+8,Uva,UV
+9,Sabaragamuwa,SGP
+
+=== DISTRICTS ===
+table:districts
+id,name,province_id
+1,Colombo,1
+2,Gampaha,1
+3,Kalutara,1
+4,Kandy,2
+5,Matale,2
+6,Nuwara Eliya,2
+7,Galle,3
+8,Matara,3
+9,Hambantota,3
+10,Jaffna,4
+11,Kilinochchi,4
+12,Mannar,4
+13,Vavuniya,4
+14,Mullaitivu,4
+15,Batticaloa,5
+16,Ampara,5
+17,Trincomalee,5
+18,Kurunegala,6
+19,Puttalam,6
+20,Anuradhapura,7
+21,Polonnaruwa,7
+22,Badulla,8
+23,Monaragala,8
+24,Ratnapura,9
+25,Kegalle,9
+
+=== POLICE STATIONS ===
+table:police_stations
+id,name,district_id,address
+1,Colombo Central Police Station,1,Colombo Central Police Station, Sri Lanka
+2,Dehiwala Police Station,1,Dehiwala Police Station, Sri Lanka
+3,Moratuwa Police Station,1,Moratuwa Police Station, Sri Lanka
+4,Gampaha Police Station,2,Gampaha Police Station, Sri Lanka
+5,Negombo Police Station,2,Negombo Police Station, Sri Lanka
+6,Kalutara Police Station,3,Kalutara Police Station, Sri Lanka
+7,Kandy Central Police Station,4,Kandy Central Police Station, Sri Lanka
+8,Peradeniya Police Station,4,Peradeniya Police Station, Sri Lanka
+9,Matale Police Station,5,Matale Police Station, Sri Lanka
+10,Nuwara Eliya Police Station,6,Nuwara Eliya Police Station, Sri Lanka
+11,Galle Fort Police Station,7,Galle Fort Police Station, Sri Lanka
+12,Matara Police Station,8,Matara Police Station, Sri Lanka
+13,Hambantota Police Station,9,Hambantota Police Station, Sri Lanka
+14,Jaffna Police Station,10,Jaffna Police Station, Sri Lanka
+15,Vavuniya Police Station,13,Vavuniya Police Station, Sri Lanka
+16,Batticaloa Police Station,15,Batticaloa Police Station, Sri Lanka
+17,Trincomalee Police Station,17,Trincomalee Police Station, Sri Lanka
+18,Ampara Police Station,16,Ampara Police Station, Sri Lanka
+19,Kurunegala Police Station,18,Kurunegala Police Station, Sri Lanka
+20,Anuradhapura Police Station,20,Anuradhapura Police Station, Sri Lanka
+21,Polonnaruwa Police Station,21,Polonnaruwa Police Station, Sri Lanka
+22,Badulla Police Station,22,Badulla Police Station, Sri Lanka
+23,Ratnapura Police Station,24,Ratnapura Police Station, Sri Lanka
+24,Kegalle Police Station,25,Kegalle Police Station, Sri Lanka
+25,Puttalam Police Station,19,Puttalam Police Station, Sri Lanka
+
+=== USERS ===
+table:users
+id,username,password_hash,role,station_id,created_at
+1,admin,$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewdBPj6ukx.LFvO.,hq_admin,,2026-05-03 00:00:00
+2,DEVICE-0001,$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewdBPj6ukx.LFvO.,device,,2026-05-03 00:00:00
+3,DEVICE-0002,$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewdBPj6ukx.LFvO.,device,,2026-05-03 00:00:00
+4,DEVICE-0003,$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewdBPj6ukx.LFvO.,device,,2026-05-03 00:00:00
+5,DEVICE-0004,$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewdBPj6ukx.LFvO.,device,,2026-05-03 00:00:00
+6,DEVICE-0005,$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewdBPj6ukx.LFvO.,device,,2026-05-03 00:00:00
+7,DEVICE-0006,$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewdBPj6ukx.LFvO.,device,,2026-05-03 00:00:00
+8,DEVICE-0007,$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewdBPj6ukx.LFvO.,device,,2026-05-03 00:00:00
+9,DEVICE-0008,$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewdBPj6ukx.LFvO.,device,,2026-05-03 00:00:00
+10,DEVICE-0009,$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewdBPj6ukx.LFvO.,device,,2026-05-03 00:00:00
+11,DEVICE-0010,$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewdBPj6ukx.LFvO.,device,,2026-05-03 00:00:00
+
+=== VEHICLES ===
+table:vehicles
+id,registration_number,driver_name,driver_nic,contact_number,district_id,status,device_id,registered_at
+1,WP 0001,Driver 1,700000001V,0712345678,1,active,DEVICE-0001,2026-05-03 00:00:00
+2,WP 0002,Driver 2,700000002V,0723456789,2,active,DEVICE-0002,2026-05-03 00:00:00
+3,WP 0003,Driver 3,700000003V,0734567890,3,active,DEVICE-0003,2026-05-03 00:00:00
+4,WP 0004,Driver 4,700000004V,0745678901,4,active,DEVICE-0004,2026-05-03 00:00:00
+5,WP 0005,Driver 5,700000005V,0756789012,5,active,DEVICE-0005,2026-05-03 00:00:00
+6,WP 0006,Driver 6,700000006V,0767890123,6,active,DEVICE-0006,2026-05-03 00:00:00
+7,WP 0007,Driver 7,700000007V,0778901234,7,active,DEVICE-0007,2026-05-03 00:00:00
+8,WP 0008,Driver 8,700000008V,0789012345,8,active,DEVICE-0008,2026-05-03 00:00:00
+9,WP 0009,Driver 9,700000009V,0790123456,9,active,DEVICE-0009,2026-05-03 00:00:00
+10,WP 0010,Driver 10,700000010V,0710234567,10,active,DEVICE-0010,2026-05-03 00:00:00
+11,WP 0011,Driver 11,700000011V,0721345678,11,active,DEVICE-0011,2026-05-03 00:00:00
+12,WP 0012,Driver 12,700000012V,0732456789,12,active,DEVICE-0012,2026-05-03 00:00:00
+13,WP 0013,Driver 13,700000013V,0743567890,13,active,DEVICE-0013,2026-05-03 00:00:00
+14,WP 0014,Driver 14,700000014V,0754678901,14,active,DEVICE-0014,2026-05-03 00:00:00
+15,WP 0015,Driver 15,700000015V,0765789012,15,active,DEVICE-0015,2026-05-03 00:00:00
+16,WP 0016,Driver 16,700000016V,0776890123,16,active,DEVICE-0016,2026-05-03 00:00:00
+17,WP 0017,Driver 17,700000017V,0787901234,17,active,DEVICE-0017,2026-05-03 00:00:00
+18,WP 0018,Driver 18,700000018V,0798012345,18,active,DEVICE-0018,2026-05-03 00:00:00
+19,WP 0019,Driver 19,700000019V,0719123456,19,active,DEVICE-0019,2026-05-03 00:00:00
+20,WP 0020,Driver 20,700000020V,0720234567,20,active,DEVICE-0020,2026-05-03 00:00:00
+
+=== LOCATION PINGS ===
+table:location_pings
+id,vehicle_id,latitude,longitude,speed,heading,pinged_at
+1,1,6.92710000,79.86120000,45.50,180.00,2026-05-03 12:00:00
+2,1,6.93010000,79.86420000,52.30,185.00,2026-05-03 11:30:00
+3,1,6.93310000,79.86720000,38.75,190.00,2026-05-03 11:00:00
+4,1,6.93610000,79.87020000,41.20,175.00,2026-05-03 10:30:00
+5,1,6.93910000,79.87320000,55.80,195.00,2026-05-03 10:00:00
+6,2,7.29060000,80.63370000,33.45,90.00,2026-05-03 12:00:00
+7,2,7.29360000,80.63670000,47.15,85.00,2026-05-03 11:30:00
+8,2,7.29660000,80.63970000,29.80,95.00,2026-05-03 11:00:00
+9,2,7.29960000,80.64270000,51.25,88.00,2026-05-03 10:30:00
+10,2,7.30260000,80.64570000,36.90,92.00,2026-05-03 10:00:00
+11,3,6.05690000,80.22080000,42.10,270.00,2026-05-03 12:00:00
+12,3,6.05990000,80.22380000,38.65,275.00,2026-05-03 11:30:00
+13,3,6.06290000,80.22680000,45.30,265.00,2026-05-03 11:00:00
+14,3,6.06590000,80.22980000,33.95,280.00,2026-05-03 10:30:00
+15,3,6.06890000,80.23280000,48.70,272.00,2026-05-03 10:00:00
+16,4,7.87310000,80.77180000,50.25,0.00,2026-05-03 12:00:00
+17,4,7.87610000,80.77480000,44.80,5.00,2026-05-03 11:30:00
+18,4,7.87910000,80.77780000,37.15,355.00,2026-05-03 11:00:00
+19,4,7.88210000,80.78080000,52.40,10.00,2026-05-03 10:30:00
+20,4,7.88510000,80.78380000,39.60,2.00,2026-05-03 10:00:00
+21,5,7.46550000,80.62040000,46.75,135.00,2026-05-03 12:00:00
+22,5,7.46850000,80.62340000,41.20,140.00,2026-05-03 11:30:00
+23,5,7.47150000,80.62640000,35.85,130.00,2026-05-03 11:00:00
+24,5,7.47450000,80.62940000,48.30,138.00,2026-05-03 10:30:00
+25,5,7.47750000,80.63240000,43.15,142.00,2026-05-03 10:00:00
+26,6,6.94810000,80.78630000,31.40,45.00,2026-05-03 12:00:00
+27,6,6.95110000,80.78930000,38.95,40.00,2026-05-03 11:30:00
+28,6,6.95410000,80.79230000,43.60,50.00,2026-05-03 11:00:00
+29,6,6.95710000,80.79530000,36.25,42.00,2026-05-03 10:30:00
+30,6,6.96010000,80.79830000,47.80,48.00,2026-05-03 10:00:00
+31,7,6.03290000,80.21730000,54.15,225.00,2026-05-03 12:00:00
+32,7,6.03590000,80.22030000,49.70,220.00,2026-05-03 11:30:00
+33,7,6.03890000,80.22330000,41.85,230.00,2026-05-03 11:00:00
+34,7,6.04190000,80.22630000,46.40,218.00,2026-05-03 10:30:00
+35,7,6.04490000,80.22930000,52.95,232.00,2026-05-03 10:00:00
+36,8,5.54830000,80.55380000,37.80,315.00,2026-05-03 12:00:00
+37,8,5.55130000,80.55680000,42.35,310.00,2026-05-03 11:30:00
+38,8,5.55430000,80.55980000,39.10,320.00,2026-05-03 11:00:00
+39,8,5.55730000,80.56280000,45.65,312.00,2026-05-03 10:30:00
+40,8,5.56030000,80.56580000,40.20,318.00,2026-05-03 10:00:00
+41,9,5.94520000,80.78810000,48.55,180.00,2026-05-03 12:00:00
+42,9,5.94820000,80.79110000,44.10,175.00,2026-05-03 11:30:00
+43,9,5.95120000,80.79410000,51.25,185.00,2026-05-03 11:00:00
+44,9,5.95420000,80.79710000,38.90,178.00,2026-05-03 10:30:00
+45,9,5.95720000,80.80010000,46.75,182.00,2026-05-03 10:00:00
+46,10,9.66150000,80.02560000,33.25,90.00,2026-05-03 12:00:00
+47,10,9.66450000,80.02860000,47.80,85.00,2026-05-03 11:30:00
+48,10,9.66750000,80.03160000,35.45,95.00,2026-05-03 11:00:00
+49,10,9.67050000,80.03460000,41.10,88.00,2026-05-03 10:30:00
+50,10,9.67350000,80.03760000,38.65,92.00,2026-05-03 10:00:00
+
+# End of Database Export
+# Summary:
+# - Provinces: 9 records
+# - Districts: 25 records  
+# - Police Stations: 25 records
+# - Users: 11 records (1 admin + 10 device users)
+# - Vehicles: 20 records
+# - Location Pings: 50 records
+# Total Records: 140
