@@ -1,7 +1,12 @@
 import sql from 'mssql';
 import * as dotenv from 'dotenv';
-dotenv.config();
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+dotenv.config({ path: join(__dirname, '../../.env'), override: true });
 const config = {
   server:   process.env.DB_SERVER || 'localhost',
   port:     parseInt(process.env.DB_PORT || '1433', 10),

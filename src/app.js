@@ -7,7 +7,11 @@ import swaggerJsdoc from 'swagger-jsdoc';
 import dotenv       from 'dotenv';
 import { fileURLToPath } from 'url';
 import { dirname, join }  from 'path';
-dotenv.config();
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname  = dirname(__filename);
+
+dotenv.config({ path: join(__dirname, '../.env'), override: true });
 
 import { getPool }    from './config/db.js';
 import authRoutes     from './routes/auth.routes.js';
@@ -15,9 +19,6 @@ import vehicleRoutes  from './routes/vehicle.routes.js';
 import locationRoutes from './routes/location.routes.js';
 import boundaryRoutes from './routes/boundary.routes.js';
 import userRoutes     from './routes/user.routes.js';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname  = dirname(__filename);
 
 const app = express();
 
