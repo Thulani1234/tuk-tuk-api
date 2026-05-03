@@ -40,7 +40,7 @@ const swaggerSpec = swaggerJsdoc({
       description: 'Sri Lanka Police Real-Time Three-Wheeler Tracking System',
     },
     servers: [{
-      url:         process.env.API_URL || `http://localhost:${process.env.PORT || 3000}`,
+      url:         process.env.API_URL || '/',
       description: 'API Server',
     }],
     components: {
