@@ -63,6 +63,22 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
 
 app.get('/docs', (req, res) => res.redirect('/api-docs'));
 
+app.get('/', (req, res) =>
+  res.json({
+    message: 'Tuk-Tuk Tracking API',
+    version: '1.0.0',
+    endpoints: {
+      docs: '/api-docs',
+      health: '/health',
+      auth: '/api/auth',
+      vehicles: '/api/vehicles',
+      locations: '/api/locations',
+      boundaries: '/api/boundaries',
+      users: '/api/users'
+    }
+  })
+);
+
 app.get('/health', (req, res) =>
   res.json({ status: 'ok', timestamp: new Date().toISOString() })
 );
