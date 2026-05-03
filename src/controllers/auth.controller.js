@@ -1,7 +1,6 @@
-
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { getPool, sql } from '../config/db.js';
+import { getPool } from '../config/db.js';
 
 export const login = async (req, res) => {
   try {
@@ -9,20 +8,21 @@ export const login = async (req, res) => {
     if (!username || !password)
       return res.status(400).json({ error: 'username and password required' });
 
-    const pool   = await getPool();
-    const result = await pool.request()
-      .input('username', sql.NVarChar, username)
-      .query('SELECT * FROM users WHERE username = @username');
+    const pool = await getPool();
+    const result = await pool.query(
+      'SELECT * FROM users WHERE username = $1',
+      [username]
+    );
 
-    const user = result.recordset[0];
+    const user = result.rows[0];
     if (!user || !(await bcrypt.compare(password, user.password_hash)))
       return res.status(401).json({ error: 'Invalid credentials' });
 
     const token = jwt.sign(
       {
-        id:         user.id,
-        username:   user.username,
-        role:       user.role,
+        id: user.id,
+        username: user.username,
+        role: user.role,
         station_id: user.station_id,
       },
       process.env.JWT_SECRET,

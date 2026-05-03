@@ -1,21 +1,19 @@
-import sql    from 'mssql';
+import pkg from 'pg';
+const { Pool } = pkg;
 import bcrypt from 'bcryptjs';
 import * as dotenv from 'dotenv';
 dotenv.config();
 
 const config = {
-  server:         'localhost',
-  port:           1433,
+  host:           process.env.DB_SERVER || 'localhost',
+  port:           parseInt(process.env.DB_PORT || '5432', 10),
   user:           process.env.DB_USER,
   password:       process.env.DB_PASSWORD,
   database:       process.env.DB_NAME,
-  requestTimeout: 120000,
-  connectionTimeout: 30000,
-  options: {
-    encrypt:                false,
-    trustServerCertificate: true,
-    enableArithAbort:       true,
-  },
+  ssl: process.env.NODE_ENV === 'production' || 
+       (process.env.DB_SERVER && (process.env.DB_SERVER.includes('.neon.tech') || process.env.DB_SERVER.includes('.supabase.com'))) 
+       ? { rejectUnauthorized: false } 
+       : false
 };
 
 const provinces = [
@@ -90,77 +88,63 @@ const rand  = (min, max) => Math.random() * (max - min) + min;
 const randI = (min, max) => Math.floor(rand(min, max));
 
 async function seed() {
-  const pool = await sql.connect(config);
-  console.log('Connected to SQL Server\n');
+  const pool = new Pool(config);
+  await pool.query('SELECT NOW()');
+  console.log('Connected to PostgreSQL\n');
 
   console.log('Clearing old data...');
-  await pool.request().query(`DELETE FROM location_pings`);
+  await pool.query(`DELETE FROM location_pings`);
   console.log('  location_pings cleared');
-  await pool.request().query(`DELETE FROM vehicles`);
+  await pool.query(`DELETE FROM vehicles`);
   console.log('  vehicles cleared');
-  await pool.request().query(`DELETE FROM users`);
+  await pool.query(`DELETE FROM users`);
   console.log('  users cleared');
-  await pool.request().query(`DELETE FROM police_stations`);
+  await pool.query(`DELETE FROM police_stations`);
   console.log('  police_stations cleared');
-  await pool.request().query(`DELETE FROM districts`);
+  await pool.query(`DELETE FROM districts`);
   console.log('  districts cleared');
-  await pool.request().query(`DELETE FROM provinces`);
+  await pool.query(`DELETE FROM provinces`);
   console.log('  provinces cleared');
 
-  await pool.request().query(`DBCC CHECKIDENT('provinces',       RESEED, 0)`);
-  await pool.request().query(`DBCC CHECKIDENT('districts',       RESEED, 0)`);
-  await pool.request().query(`DBCC CHECKIDENT('police_stations', RESEED, 0)`);
-  await pool.request().query(`DBCC CHECKIDENT('users',           RESEED, 0)`);
-  await pool.request().query(`DBCC CHECKIDENT('vehicles',        RESEED, 0)`);
-  await pool.request().query(`DBCC CHECKIDENT('location_pings',  RESEED, 0)`);
+  console.log('Resetting identity sequences...');
+  await pool.query(`TRUNCATE provinces RESTART IDENTITY CASCADE`);
+  await pool.query(`TRUNCATE districts RESTART IDENTITY CASCADE`);
+  await pool.query(`TRUNCATE police_stations RESTART IDENTITY CASCADE`);
+  await pool.query(`TRUNCATE users RESTART IDENTITY CASCADE`);
+  await pool.query(`TRUNCATE vehicles RESTART IDENTITY CASCADE`);
+  await pool.query(`TRUNCATE location_pings RESTART IDENTITY CASCADE`);
 
   console.log('Seeding provinces...');
   for (const p of provinces) {
-    await pool.request()
-      .input('name', sql.NVarChar, p.name)
-      .input('code', sql.NVarChar, p.code)
-      .query('INSERT INTO provinces (name, code) VALUES (@name, @code)');
+    await pool.query('INSERT INTO provinces (name, code) VALUES ($1, $2)', [p.name, p.code]);
   }
 
-  const { recordset: provRows } = await pool.request()
-    .query('SELECT id, name FROM provinces');
+  const { rows: provRows } = await pool.query('SELECT id, name FROM provinces');
   const provMap = Object.fromEntries(provRows.map(r => [r.name, r.id]));
 
   console.log('Seeding districts...');
   for (const d of districts) {
-    await pool.request()
-      .input('name',        sql.NVarChar, d.name)
-      .input('province_id', sql.Int,      provMap[d.province])
-      .query('INSERT INTO districts (name, province_id) VALUES (@name, @province_id)');
+    await pool.query('INSERT INTO districts (name, province_id) VALUES ($1, $2)', [d.name, provMap[d.province]]);
   }
 
-  const { recordset: distRows } = await pool.request()
-    .query('SELECT id, name FROM districts');
+  const { rows: distRows } = await pool.query('SELECT id, name FROM districts');
   const distMap = Object.fromEntries(distRows.map(r => [r.name, r.id]));
   const distIds = distRows.map(r => r.id);
 
   console.log('Seeding police stations...');
   for (const s of stations) {
-    await pool.request()
-      .input('name',        sql.NVarChar, s.name)
-      .input('district_id', sql.Int,      distMap[s.district])
-      .input('address',     sql.NVarChar, `${s.name}, Sri Lanka`)
-      .query(`
-        INSERT INTO police_stations (name, district_id, address)
-        VALUES (@name, @district_id, @address)
-      `);
+    await pool.query(`
+      INSERT INTO police_stations (name, district_id, address)
+      VALUES ($1, $2, $3)
+    `, [s.name, distMap[s.district], `${s.name}, Sri Lanka`]);
   }
 
   console.log('Seeding admin user...');
   const adminHash = await bcrypt.hash('Admin@1234', 12);
-  await pool.request()
-    .input('username',      sql.NVarChar, 'admin')
-    .input('password_hash', sql.NVarChar, adminHash)
-    .input('role',          sql.NVarChar, 'hq_admin')
-    .query(`
-      INSERT INTO users (username, password_hash, role)
-      VALUES (@username, @password_hash, @role)
-    `);
+  await pool.query(`
+    INSERT INTO users (username, password_hash, role)
+    VALUES ($1, $2, $3)
+  `, ['admin', adminHash, 'hq_admin']);
 
   const devHash = await bcrypt.hash('Device@1234', 12);
 
@@ -171,32 +155,21 @@ async function seed() {
     const deviceId = `DEVICE-${String(i).padStart(4, '0')}`;
     const distId   = distIds[i % distIds.length];
 
-    const { recordset } = await pool.request()
-      .input('reg',      sql.NVarChar, reg)
-      .input('name',     sql.NVarChar, `Driver ${i}`)
-      .input('nic',      sql.NVarChar, `${700000000 + i}V`)
-      .input('contact',  sql.NVarChar, `07${String(randI(10000000, 99999999))}`)
-      .input('dist',     sql.Int,      distId)
-      .input('deviceId', sql.NVarChar, deviceId)
-      .query(`
-        INSERT INTO vehicles
-          (registration_number, driver_name, driver_nic,
-           contact_number, district_id, device_id, status)
-        OUTPUT INSERTED.id
-        VALUES
-          (@reg, @name, @nic, @contact, @dist, @deviceId, 'active')
-      `);
+    const { rows } = await pool.query(`
+      INSERT INTO vehicles
+        (registration_number, driver_name, driver_nic,
+         contact_number, district_id, device_id, status)
+      VALUES
+        ($1, $2, $3, $4, $5, $6, 'active')
+      RETURNING id
+    `, [reg, `Driver ${i}`, `${700000000 + i}V`, `07${String(randI(10000000, 99999999))}`, distId, deviceId]);
 
-    vehicleIds.push(recordset[0].id);
+    vehicleIds.push(rows[0].id);
 
-    await pool.request()
-      .input('username',      sql.NVarChar, deviceId)
-      .input('password_hash', sql.NVarChar, devHash)
-      .input('role',          sql.NVarChar, 'device')
-      .query(`
-        INSERT INTO users (username, password_hash, role)
-        VALUES (@username, @password_hash, @role)
-      `);
+    await pool.query(`
+      INSERT INTO users (username, password_hash, role)
+      VALUES ($1, $2, $3)
+    `, [deviceId, devHash, 'device']);
   }
 
   console.log('Seeding 7 days of location history...');
@@ -208,7 +181,7 @@ async function seed() {
   const flushBatch = async () => {
     if (batchValues.length === 0) return;
     const valueStr = batchValues.join(',\n');
-    await pool.request().query(`
+    await pool.query(`
       INSERT INTO location_pings
         (vehicle_id, latitude, longitude, speed, heading, pinged_at)
       VALUES ${valueStr}
@@ -251,7 +224,7 @@ async function seed() {
   console.log(`\nAdmin  →  username: admin        password: Admin@1234`);
   console.log(`Device →  username: DEVICE-0001  password: Device@1234`);
 
-  await sql.close();
+  await pool.end();
 }
 
 seed().catch(err => {

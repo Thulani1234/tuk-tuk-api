@@ -1,4 +1,3 @@
-
 import { getPool, sql } from '../config/db.js';
 
 export const getAllVehicles = async (req, res) => {
@@ -6,25 +5,31 @@ export const getAllVehicles = async (req, res) => {
     const { district_id, province_id, status, page = 1, limit = 50 } = req.query;
     const offset = (page - 1) * limit;
     const pool   = await getPool();
-    const req2   = pool.request()
-      .input('limit',  sql.Int, Number(limit))
-      .input('offset', sql.Int, Number(offset));
-
+    
+    const params = [];
     let where = '1=1';
+    let paramIndex = 1;
+
     if (district_id) {
-      req2.input('district_id', sql.Int, Number(district_id));
-      where += ' AND v.district_id = @district_id';
+      params.push(Number(district_id));
+      where += ` AND v.district_id = $${paramIndex++}`;
     }
     if (province_id) {
-      req2.input('province_id', sql.Int, Number(province_id));
-      where += ' AND d.province_id = @province_id';
+      params.push(Number(province_id));
+      where += ` AND d.province_id = $${paramIndex++}`;
     }
     if (status) {
-      req2.input('status', sql.NVarChar, status);
-      where += ' AND v.status = @status';
+      params.push(status);
+      where += ` AND v.status = $${paramIndex++}`;
     }
 
-    const result = await req2.query(`
+    params.push(Number(limit));
+    const limitIndex = paramIndex++;
+    
+    params.push(Number(offset));
+    const offsetIndex = paramIndex++;
+
+    const result = await pool.query(`
       SELECT
         v.id, v.registration_number, v.driver_name, v.driver_nic,
         v.contact_number, v.status, v.device_id, v.registered_at,
@@ -34,10 +39,10 @@ export const getAllVehicles = async (req, res) => {
       LEFT JOIN provinces  p ON d.province_id = p.id
       WHERE ${where}
       ORDER BY v.id
-      OFFSET @offset ROWS FETCH NEXT @limit ROWS ONLY
-    `);
+      LIMIT $${limitIndex} OFFSET $${offsetIndex}
+    `, params);
 
-    res.json({ data: result.recordset, page: Number(page), limit: Number(limit) });
+    res.json({ data: result.rows, page: Number(page), limit: Number(limit) });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Server error' });
@@ -47,21 +52,19 @@ export const getAllVehicles = async (req, res) => {
 export const getVehicleById = async (req, res) => {
   try {
     const pool   = await getPool();
-    const result = await pool.request()
-      .input('id', sql.Int, Number(req.params.id))
-      .query(`
+    const result = await pool.query(`
         SELECT
           v.*, d.name AS district_name, p.name AS province_name
         FROM vehicles v
         LEFT JOIN districts d ON v.district_id = d.id
         LEFT JOIN provinces  p ON d.province_id = p.id
-        WHERE v.id = @id
-      `);
+        WHERE v.id = $1
+      `, [Number(req.params.id)]);
 
-    if (!result.recordset[0])
+    if (!result.rows[0])
       return res.status(404).json({ error: 'Vehicle not found' });
 
-    res.json(result.recordset[0]);
+    res.json(result.rows[0]);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Server error' });
@@ -79,26 +82,25 @@ export const createVehicle = async (req, res) => {
       return res.status(400).json({ error: 'registration_number is required' });
 
     const pool   = await getPool();
-    const result = await pool.request()
-      .input('registration_number', sql.NVarChar, registration_number)
-      .input('driver_name',         sql.NVarChar, driver_name    || null)
-      .input('driver_nic',          sql.NVarChar, driver_nic     || null)
-      .input('contact_number',      sql.NVarChar, contact_number || null)
-      .input('district_id',         sql.Int,      district_id    || null)
-      .input('device_id',           sql.NVarChar, device_id      || null)
-      .query(`
+    const result = await pool.query(`
         INSERT INTO vehicles
           (registration_number, driver_name, driver_nic,
            contact_number, district_id, device_id)
-        OUTPUT INSERTED.id
         VALUES
-          (@registration_number, @driver_name, @driver_nic,
-           @contact_number, @district_id, @device_id)
-      `);
+          ($1, $2, $3, $4, $5, $6)
+        RETURNING id
+      `, [
+        registration_number,
+        driver_name || null,
+        driver_nic || null,
+        contact_number || null,
+        district_id || null,
+        device_id || null
+      ]);
 
-    res.status(201).json({ id: result.recordset[0].id, message: 'Vehicle registered' });
+    res.status(201).json({ id: result.rows[0].id, message: 'Vehicle registered' });
   } catch (err) {
-    if (err.number === 2627 || err.number === 2601)
+    if (err.code === '23505')
       return res.status(409).json({ error: 'Registration number already exists' });
     console.error(err);
     res.status(500).json({ error: 'Server error' });
@@ -113,26 +115,26 @@ export const updateVehicle = async (req, res) => {
     } = req.body;
 
     const pool = await getPool();
-    const result = await pool.request()
-      .input('id',             sql.Int,      Number(req.params.id))
-      .input('driver_name',    sql.NVarChar, driver_name    || null)
-      .input('driver_nic',     sql.NVarChar, driver_nic     || null)
-      .input('contact_number', sql.NVarChar, contact_number || null)
-      .input('district_id',    sql.Int,      district_id    || null)
-      .input('status',         sql.NVarChar, status         || null)
-      .input('device_id',      sql.NVarChar, device_id      || null)
-      .query(`
+    const result = await pool.query(`
         UPDATE vehicles SET
-          driver_name    = @driver_name,
-          driver_nic     = @driver_nic,
-          contact_number = @contact_number,
-          district_id    = @district_id,
-          status         = @status,
-          device_id      = @device_id
-        WHERE id = @id
-      `);
+          driver_name    = $1,
+          driver_nic     = $2,
+          contact_number = $3,
+          district_id    = $4,
+          status         = $5,
+          device_id      = $6
+        WHERE id = $7
+      `, [
+        driver_name || null,
+        driver_nic || null,
+        contact_number || null,
+        district_id || null,
+        status || null,
+        device_id || null,
+        Number(req.params.id)
+      ]);
 
-    if (result.rowsAffected[0] === 0)
+    if (result.rowCount === 0)
       return res.status(404).json({ error: 'Vehicle not found' });
 
     res.json({ message: 'Vehicle updated' });
@@ -145,11 +147,9 @@ export const updateVehicle = async (req, res) => {
 export const deleteVehicle = async (req, res) => {
   try {
     const pool   = await getPool();
-    const result = await pool.request()
-      .input('id', sql.Int, Number(req.params.id))
-      .query('DELETE FROM vehicles WHERE id = @id');
+    const result = await pool.query('DELETE FROM vehicles WHERE id = $1', [Number(req.params.id)]);
 
-    if (result.rowsAffected[0] === 0)
+    if (result.rowCount === 0)
       return res.status(404).json({ error: 'Vehicle not found' });
 
     res.json({ message: 'Vehicle deleted' });

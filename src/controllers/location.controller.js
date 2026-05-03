@@ -1,5 +1,4 @@
-
-import { getPool, sql } from '../config/db.js';
+import { getPool } from '../config/db.js';
 
 export const addPing = async (req, res) => {
   try {
@@ -8,18 +7,15 @@ export const addPing = async (req, res) => {
       return res.status(400).json({ error: 'vehicle_id, latitude, longitude are required' });
 
     const pool = await getPool();
-    await pool.request()
-      .input('vehicle_id', sql.Int,           Number(vehicle_id))
-      .input('latitude',   sql.Decimal(10,8), latitude)
-      .input('longitude',  sql.Decimal(11,8), longitude)
-      .input('speed',      sql.Decimal(5,2),  speed   ?? null)
-      .input('heading',    sql.Decimal(5,2),  heading ?? null)
-      .query(`
+    await pool.query(
+      `
         INSERT INTO location_pings
           (vehicle_id, latitude, longitude, speed, heading)
         VALUES
-          (@vehicle_id, @latitude, @longitude, @speed, @heading)
-      `);
+          ($1, $2, $3, $4, $5)
+      `,
+      [Number(vehicle_id), latitude, longitude, speed ?? null, heading ?? null]
+    );
 
     res.status(201).json({ message: 'Ping recorded' });
   } catch (err) {
@@ -30,10 +26,9 @@ export const addPing = async (req, res) => {
 
 export const getLastKnown = async (req, res) => {
   try {
-    const pool   = await getPool();
-    const result = await pool.request()
-      .input('vehicleId', sql.Int, Number(req.params.vehicleId))
-      .query(`
+    const pool = await getPool();
+    const result = await pool.query(
+      `
         SELECT
           v.id, v.registration_number, v.driver_name, v.status,
           lp.latitude, lp.longitude, lp.speed, lp.heading, lp.pinged_at,
@@ -41,20 +36,23 @@ export const getLastKnown = async (req, res) => {
         FROM vehicles v
         LEFT JOIN districts d ON v.district_id = d.id
         LEFT JOIN provinces  p ON d.province_id = p.id
-        OUTER APPLY (
-          SELECT TOP 1
+        LEFT JOIN LATERAL (
+          SELECT
             latitude, longitude, speed, heading, pinged_at
           FROM location_pings
           WHERE vehicle_id = v.id
           ORDER BY pinged_at DESC
-        ) lp
-        WHERE v.id = @vehicleId
-      `);
+          LIMIT 1
+        ) lp ON true
+        WHERE v.id = $1
+      `,
+      [Number(req.params.vehicleId)]
+    );
 
-    if (!result.recordset[0])
+    if (!result.rows[0])
       return res.status(404).json({ error: 'Vehicle not found' });
 
-    res.json(result.recordset[0]);
+    res.json(result.rows[0]);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Server error' });
@@ -65,38 +63,44 @@ export const getLiveAll = async (req, res) => {
   try {
     const { district_id, province_id } = req.query;
     const pool = await getPool();
-    const req2 = pool.request();
 
     let where = "v.status = 'active'";
+    const params = [];
+    let paramIndex = 1;
+
     if (district_id) {
-      req2.input('district_id', sql.Int, Number(district_id));
-      where += ' AND v.district_id = @district_id';
+      params.push(Number(district_id));
+      where += ` AND v.district_id = $${paramIndex++}`;
     }
     if (province_id) {
-      req2.input('province_id', sql.Int, Number(province_id));
-      where += ' AND d.province_id = @province_id';
+      params.push(Number(province_id));
+      where += ` AND d.province_id = $${paramIndex++}`;
     }
 
-    const result = await req2.query(`
-      SELECT
-        v.id, v.registration_number, v.driver_name, v.status,
-        lp.latitude, lp.longitude, lp.speed, lp.pinged_at,
-        d.name AS district_name, p.name AS province_name
-      FROM vehicles v
-      LEFT JOIN districts d ON v.district_id = d.id
-      LEFT JOIN provinces  p ON d.province_id = p.id
-      OUTER APPLY (
-        SELECT TOP 1
-          latitude, longitude, speed, pinged_at
-        FROM location_pings
-        WHERE vehicle_id = v.id
-        ORDER BY pinged_at DESC
-      ) lp
-      WHERE ${where}
-      ORDER BY v.id
-    `);
+    const result = await pool.query(
+      `
+        SELECT
+          v.id, v.registration_number, v.driver_name, v.status,
+          lp.latitude, lp.longitude, lp.speed, lp.pinged_at,
+          d.name AS district_name, p.name AS province_name
+        FROM vehicles v
+        LEFT JOIN districts d ON v.district_id = d.id
+        LEFT JOIN provinces  p ON d.province_id = p.id
+        LEFT JOIN LATERAL (
+          SELECT
+            latitude, longitude, speed, pinged_at
+          FROM location_pings
+          WHERE vehicle_id = v.id
+          ORDER BY pinged_at DESC
+          LIMIT 1
+        ) lp ON true
+        WHERE ${where}
+        ORDER BY v.id
+      `,
+      params
+    );
 
-    res.json({ count: result.recordset.length, data: result.recordset });
+    res.json({ count: result.rows.length, data: result.rows });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Server error' });
@@ -107,49 +111,58 @@ export const getHistory = async (req, res) => {
   try {
     const { from, to, district_id, province_id, page = 1, limit = 200 } = req.query;
     const offset = (page - 1) * limit;
-    const pool   = await getPool();
-    const req2   = pool.request()
-      .input('limit',  sql.Int, Number(limit))
-      .input('offset', sql.Int, Number(offset));
+    const pool = await getPool();
 
     let where = '1=1';
+    const params = [];
+    let paramIndex = 1;
+
     if (req.params.vehicleId) {
-      req2.input('vehicleId', sql.Int, Number(req.params.vehicleId));
-      where += ' AND lp.vehicle_id = @vehicleId';
+      params.push(Number(req.params.vehicleId));
+      where += ` AND lp.vehicle_id = $${paramIndex++}`;
     }
     if (from) {
-      req2.input('from', sql.DateTime2, new Date(from));
-      where += ' AND lp.pinged_at >= @from';
+      params.push(new Date(from));
+      where += ` AND lp.pinged_at >= $${paramIndex++}`;
     }
     if (to) {
-      req2.input('to', sql.DateTime2, new Date(to));
-      where += ' AND lp.pinged_at <= @to';
+      params.push(new Date(to));
+      where += ` AND lp.pinged_at <= $${paramIndex++}`;
     }
     if (district_id) {
-      req2.input('district_id', sql.Int, Number(district_id));
-      where += ' AND v.district_id = @district_id';
+      params.push(Number(district_id));
+      where += ` AND v.district_id = $${paramIndex++}`;
     }
     if (province_id) {
-      req2.input('province_id', sql.Int, Number(province_id));
-      where += ' AND d.province_id = @province_id';
+      params.push(Number(province_id));
+      where += ` AND d.province_id = $${paramIndex++}`;
     }
 
-    const result = await req2.query(`
-      SELECT
-        lp.id, lp.latitude, lp.longitude,
-        lp.speed, lp.heading, lp.pinged_at,
-        v.registration_number, v.driver_name,
-        d.name AS district_name, p.name AS province_name
-      FROM location_pings lp
-      JOIN     vehicles  v ON lp.vehicle_id  = v.id
-      LEFT JOIN districts d ON v.district_id  = d.id
-      LEFT JOIN provinces  p ON d.province_id = p.id
-      WHERE ${where}
-      ORDER BY lp.pinged_at DESC
-      OFFSET @offset ROWS FETCH NEXT @limit ROWS ONLY
-    `);
+    params.push(Number(limit));
+    const limitIndex = paramIndex++;
+    
+    params.push(Number(offset));
+    const offsetIndex = paramIndex++;
 
-    res.json({ data: result.recordset, page: Number(page), limit: Number(limit) });
+    const result = await pool.query(
+      `
+        SELECT
+          lp.id, lp.latitude, lp.longitude,
+          lp.speed, lp.heading, lp.pinged_at,
+          v.registration_number, v.driver_name,
+          d.name AS district_name, p.name AS province_name
+        FROM location_pings lp
+        JOIN     vehicles  v ON lp.vehicle_id  = v.id
+        LEFT JOIN districts d ON v.district_id  = d.id
+        LEFT JOIN provinces  p ON d.province_id = p.id
+        WHERE ${where}
+        ORDER BY lp.pinged_at DESC
+        LIMIT $${limitIndex} OFFSET $${offsetIndex}
+      `,
+      params
+    );
+
+    res.json({ data: result.rows, page: Number(page), limit: Number(limit) });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Server error' });
