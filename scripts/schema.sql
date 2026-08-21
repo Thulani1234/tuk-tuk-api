@@ -1,4 +1,4 @@
--- Drop tables if they exist
+-- Drop tables if they exist  
 DROP TABLE IF EXISTS location_pings CASCADE;
 DROP TABLE IF EXISTS vehicles CASCADE;
 DROP TABLE IF EXISTS users CASCADE;

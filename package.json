@@ -9,7 +9,7 @@
     "start": "node src/app.js",
     "dev": "nodemon src/app.js",
     "seed": "node scripts/seed.js",
-    "simulate": "node simulation/simulate.js"
+    "simulate": "node scripts/simulation/simulate.js"
   },
   "keywords": [],
   "author": "",
